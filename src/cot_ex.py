@@ -3,7 +3,7 @@ import csv
 import re
 import time
 import requests
-import rule_source as ru
+import rules as ru
 import argparse
 from pathlib import Path
 from tqdm import tqdm
