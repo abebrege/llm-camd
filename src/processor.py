@@ -18,42 +18,42 @@ def prepare_prompt(source_code: str, rule_groups: dict) -> str:
         rule_descriptions.append(rule_desc)
     rules_str = "\n".join(rule_descriptions)
     instruction = f"""
-[Misuse Rule List]
-{rules_str}
+        [Misuse Rule List]
+        {rules_str}
 
-[Source Code]
-{source_code}
+        [Source Code]
+        {source_code}
 
-[Detection Steps]
-[1] Line-by-line analyze code:
-Analyze the code line by line, ensuring correctly understanding of the function of each line and the variable and parameter passing between lines; Differentiating between 'module import code' and 'body code'.
-[2] Must Exclude the unused module import code:
-Confirm the import modules be used in body code; Must Exclude them if unused right now without speculate. If there is no body code, directly Skip to step [5].
-[3] Locate body code lines related to [Misuse Rule List]:
-Locate body code lines related to [Misuse Rule List], and determine the body code executed condition during runtime; Must Exclude them if unexecuted right now without speculate.
-[4] Trace each used parameter related to [Misuse Rule List]:
-Understanding the code through step [1], [2] and [3], Trace each used parameter related to [Misuse Rule List] origins (keys/salts/iterations/regex).
-[5] Draw a judgment conclusion:
-Based on the above analysis steps, draw a judgment conclusion of actual execution body code against the [Misuse Rule List]. If there is no body code, judge as no misuse.
-[6] Output Detection Result:
-Output the Detection Result of step [5] according to the requirements and format.
+        [Detection Steps]
+        [1] Line-by-line analyze code:
+        Analyze the code line by line, ensuring correctly understanding of the function of each line and the variable and parameter passing between lines; Differentiating between 'module import code' and 'body code'.
+        [2] Must Exclude the unused module import code:
+        Confirm the import modules be used in body code; Must Exclude them if unused right now without speculate. If there is no body code, directly Skip to step [5].
+        [3] Locate body code lines related to [Misuse Rule List]:
+        Locate body code lines related to [Misuse Rule List], and determine the body code executed condition during runtime; Must Exclude them if unexecuted right now without speculate.
+        [4] Trace each used parameter related to [Misuse Rule List]:
+        Understanding the code through step [1], [2] and [3], Trace each used parameter related to [Misuse Rule List] origins (keys/salts/iterations/regex).
+        [5] Draw a judgment conclusion:
+        Based on the above analysis steps, draw a judgment conclusion of actual execution body code against the [Misuse Rule List]. If there is no body code, judge as no misuse.
+        [6] Output Detection Result:
+        Output the Detection Result of step [5] according to the requirements and format.
 
-### Task Requirements
-As a professional Python programmer, strictly execute the [Detection Steps] sequentially to analyze the [Source Code] for Cryptographic API Misuse Detection. 
+        ### Task Requirements
+        As a professional Python programmer, strictly execute the [Detection Steps] sequentially to analyze the [Source Code] for Cryptographic API Misuse Detection. 
 
-### Detection Result Output Requirements:
-1. Strictly executed all [Detection Steps] at first, Output the Detection Result later.
-2. Separate misuse line numbers with commas ','.
-3. If multiple rules are violated, merge into a single entry.
-4. Separate field values with '|'; for the same rule, keep line numbers comma-separated.
-5. Strictly maintain field order and format (retain titles before ':').
+        ### Detection Result Output Requirements:
+        1. Strictly executed all [Detection Steps] at first, Output the Detection Result later.
+        2. Separate misuse line numbers with commas ','.
+        3. If multiple rules are violated, merge into a single entry.
+        4. Separate field values with '|'; for the same rule, keep line numbers comma-separated.
+        5. Strictly maintain field order and format (retain titles before ':').
 
-### Detection Result Output Format:
-Line Numbers: (same-rule lines comma-separated, different rules separated by '|', e.g., 1,3|2,5. If the detection result is no misused, set it to None.)
-Rule IDs: (multiple numbers separated by '|'. If the detection result is no misused, set it to -1.)
-Rule Names: (multiple names separated by '|'. If the detection result is no misused, set it to UNKNOWN.)
-Misused Modules: (multiple modules separated by '|'. If the detection result is no misused, set it to None.)
-Misused path:
+        ### Detection Result Output Format:
+        Line Numbers: (same-rule lines comma-separated, different rules separated by '|', e.g., 1,3|2,5. If the detection result is no misused, set it to None.)
+        Rule IDs: (multiple numbers separated by '|'. If the detection result is no misused, set it to -1.)
+        Rule Names: (multiple names separated by '|'. If the detection result is no misused, set it to UNKNOWN.)
+        Misused Modules: (multiple modules separated by '|'. If the detection result is no misused, set it to None.)
+        Misused path:
     """
     return instruction
 
