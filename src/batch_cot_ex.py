@@ -3,7 +3,7 @@ import csv
 import re
 import time
 import requests
-import rule_source as ru
+import rules as ru
 import argparse
 from pathlib import Path
 from tqdm import tqdm
@@ -95,11 +95,11 @@ Output the Detection Result of step [5] according to the requirements and format
 As a professional Python programmer, strictly execute the [Detection Steps] sequentially to analyze the [Source Code] for Cryptographic API Misuse Detection. 
 
 ### Detection Result Output Requirements:
-1. Strictly executed all [Detection Steps] at first, Output the Detection Result later.
-2. Separate misuse line numbers with commas ','.
-3. If multiple rules are violated, merge into a single entry.
-4. Separate field values with '|'; for the same rule, keep line numbers comma-separated.
-5. Strictly maintain field order and format (retain titles before ':').
+1. Separate misuse line numbers with commas ','.
+2. If multiple rules are violated, merge into a single entry.
+3. Separate field values with '|'; for the same rule, keep line numbers comma-separated.
+4. Strictly maintain field order and format (retain titles before ':').
+5. Strictly executed all [Detection Steps] at first, Output the Detection Result later.
 
 ### Detection Result Output Format:
 Line Numbers: (same-rule lines comma-separated, different rules separated by '|', e.g., 1,3|2,5. If the detection result is no misused, set it to None.)
@@ -152,12 +152,9 @@ def analyze_with_llm(prompt: str, model_name: str, API_Key: str, timeout: int = 
     """
 
     endpoint = "https://api.siliconflow.cn/v1/chat/completions"  # siliconflow request adress
-    # endpoint = "http://localhost:11434/api/generate"  # siliconflow request adress
-    # endpoint = " https://api.apiyi.com/v1/chat/completions"  # OpenAI request adress
     # endpoint = "https://api.openai.com/v1/chat/completions"  # OpenAI request adress
     headers = {
         "Authorization": f"Bearer {API_Key}",  # Please fill in your own SiliconFlow API key.
-        # "Authorization": f"Bearer {'Your—API-Key'}",  # Please fill in your own OpenAI API key.
         "Content-Type": "application/json"
     }
     payload = {
@@ -260,7 +257,6 @@ def analyze_with_ollama(prompt: str, model_name: str, timeout: int = 200):
 
 
 def process_single_file(file_path: Path, rule_groups: dict, model_name: str, API_Key:str) -> dict:
-# def process_single_file(file_path: Path, rule_groups: dict, model_name: str) -> dict:
     """process single files and return a dict result"""
     try:
         code_content = read_code_file(str(file_path))
@@ -292,7 +288,6 @@ def save_to_csv(results: list[dict], output_path: str):
 
 
 def batch_analyze(folder_path: str, codetype: str, model_name: str, API_Key: str, i):
-# def batch_analyze(folder_path: str, codetype: str, model_name: str, i):
     try:
         rule_groups = load_security_rules(codetype)
     except Exception as e:
@@ -337,44 +332,59 @@ def batch_analyze(folder_path: str, codetype: str, model_name: str, API_Key: str
             file_results = error_result
         results.append(file_results)
     # Save result to CSV
-    output_csv = Path(folder_path) / f"analysis_result_by_{model_name.replace('/', '_')}-CoT-{i}-3.csv"
+    output_csv = Path(folder_path) / f"analysis_result_by_{model_name.replace('/', '_')}-CoT-{i}.csv"
     save_to_csv(results, str(output_csv))
     print(f"\n Analysis cycle {i} has been completed！Results save to：{output_csv} \n\n")
 
 
 if __name__ == "__main__":
-    model_name = 'moonshotai/Kimi-K2-Instruct'
-    # model_name = 'deepseek-ai/DeepSeek-V3'
-    API_Key = 'sk-juexxxx'  # Please fill in your own SiliconFlow API key.
-    # file_path = './py_full_unsafe/rule_08_Global_1.py'
-    # file_path = './py_full_unsafe/rule_09_Path-Sensitive_0.py'
-    file_path = './pysafe_trapfile/Trap_Import_Path-Sensitive_md5_rule_11_trapfile_9.py'
+    parser = argparse.ArgumentParser(
+        description="LLM-based Cryptographic API Misuse Detection",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    # folder_path = './pysafe_trapfile'     # folder path be analyzed
+    folder_path = './py_full_unsafe'  # folder path be analyzed
+
+    model_name = 'deepseek-ai/DeepSeek-V3.1-Terminus'
+    # model_name = 'moonshotai/Kimi-K2-Instruct'  # model name from SiliconFlow page: https://cloud.siliconflow.cn/sft-143zof85kk/models
+
+    API_Key = 'sk-cvjxxxx'  # Please fill in your own SiliconFlow API key.
+
+    batch_analyze(folder_path, 'py', model_name, API_Key, 1)
+
+
+    # # model_name = 'moonshotai/Kimi-K2-Instruct'
+    # model_name = 'deepseek-ai/DeepSeek-V3.1-Terminus'
+    # API_Key = 'sk-cvjxxxx'  # Please fill in your own SiliconFlow API key.
+    # # file_path = './py_full_unsafe/rule_13_Global_1.py'
+    # # file_path = './py_full_unsafe/rule_17_Field-Sensitive_1.py'
+    # # file_path = './pysafe_trapfile/Trap_Import_xml.etree_rule_15_trapfile_1.py'
     # file_path = './pysafe_trapfile/Trap_Import_Field-Sensitive_pyDes_rule_09_trapfile_5.py'
-
-    rule_groups = load_security_rules('py')
-    code_content = read_code_file(str(file_path))
-    prompt = prepare_prompt(code_content, rule_groups)  # 传入rule_groups
-    print(prompt)
-    start_time = time.perf_counter()
-    raw_result = analyze_with_llm(prompt, model_name, API_Key)
-    print("*" * 10)
-    print(raw_result)
-    print(type(raw_result))
-
-    fd = parse_analysis_result(raw_result, file_path)
-    print(fd)
-
-    end_time = time.perf_counter()
-    elapsed_time = end_time - start_time
-
-    # 转换为分和秒
-    minutes = int(elapsed_time // 60)
-    seconds = elapsed_time % 60
-
-    if minutes > 0:
-        print(f"检测耗时: {minutes}分{seconds:.2f}秒")
-    else:
-        print(f"检测耗时: {seconds:.2f}秒")
-
+    #
+    # rule_groups = load_security_rules('py')
+    # code_content = read_code_file(str(file_path))
+    # prompt = prepare_prompt(code_content, rule_groups)  # 传入rule_groups
+    # print(prompt)
+    # start_time = time.perf_counter()
+    # raw_result = analyze_with_llm(prompt, model_name, API_Key)
+    # print("*" * 10)
+    # print(raw_result)
+    # print(type(raw_result))
+    #
+    # fd = parse_analysis_result(raw_result, file_path)
+    # print(fd)
+    #
+    # end_time = time.perf_counter()
+    # elapsed_time = end_time - start_time
+    #
+    # # 转换为分和秒
+    # minutes = int(elapsed_time // 60)
+    # seconds = elapsed_time % 60
+    #
+    # if minutes > 0:
+    #     print(f"检测耗时: {minutes}分{seconds:.2f}秒")
+    # else:
+    #     print(f"检测耗时: {seconds:.2f}秒")
 
 
