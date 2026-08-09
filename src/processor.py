@@ -57,7 +57,7 @@ Misused path:
     """
     return instruction
 
-def analyze_with_llm(prompt: str, model_name: str, API_Key: str, timeout: int = 120):
+def analyze_with_llm(prompt: str, model_name: str, API_KEY: str, timeout: int = 120):
     """
     Use LLMs by API
     Suggest LLMs：
@@ -70,7 +70,7 @@ def analyze_with_llm(prompt: str, model_name: str, API_Key: str, timeout: int = 
     # endpoint = " https://api.apiyi.com/v1/chat/completions"  # OpenAI request adress
     # endpoint = "https://api.openai.com/v1/chat/completions"  # OpenAI request adress
     headers = {
-        "Authorization": f"Bearer {API_Key}",  # Please fill in your own SiliconFlow API key.
+        "Authorization": f"Bearer {API_KEY}",  # Please fill in your own SiliconFlow API key.
         # "Authorization": f"Bearer {'Your—API-Key'}",  # Please fill in your own OpenAI API key.
         "Content-Type": "application/json"
     }
@@ -173,13 +173,13 @@ def analyze_with_ollama(prompt: str, model_name: str, timeout: int = 200):
         raise RuntimeError(f"An error occurred while processing the response: {str(e)}")
 
 
-def process_single_file(file_path: Path, rule_groups: dict, model_name: str, API_Key:str) -> dict:
+def process_single_file(file_path: Path, rule_groups: dict, model_name: str, API_KEY:str) -> dict:
     """process single files and return a dict result"""
     try:
         code_content = read_code_file(str(file_path))
         prompt = prepare_prompt(code_content, rule_groups)
         # raw_result = analyze_with_ollama(prompt, model_name)
-        raw_result = analyze_with_llm(prompt, model_name, API_Key)
+        raw_result = analyze_with_llm(prompt, model_name, API_KEY)
         result = parse_analysis_result(raw_result, str(file_path))
         result["Time_Taken/s"] = '0.01'
         return result
@@ -193,7 +193,7 @@ def process_single_file(file_path: Path, rule_groups: dict, model_name: str, API
         "Time_Taken/s": '0.01'
     }
 
-def process(target_path: str, codetype: str, model_name: str, API_Key: str, i):
+def process(target_path: str, codetype: str, model_name: str, API_KEY: str, i):
     try:
         rule_groups = load_security_rules(codetype)
     except Exception as e:
@@ -234,7 +234,7 @@ def process(target_path: str, codetype: str, model_name: str, API_Key: str, i):
                 file_path=file_path,
                 rule_groups=rule_groups,
                 model_name=model_name,
-                API_Key=API_Key
+                API_KEY=API_KEY
             )
             elapsed = round(time.time() - start_time, 2)
             file_results["Time_Taken/s"] = f"{elapsed}"
