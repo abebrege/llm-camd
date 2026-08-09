@@ -1,5 +1,5 @@
 import argparse
-import os
+from src.model import get_model, list_models
 from src.processor import process
 from dotenv import load_dotenv
 
@@ -13,18 +13,19 @@ def main():
     parser.add_argument(
         "--target",
         type=str,
-        default="./py_full_unsafe",
+        default="./benchmark/python/Xiong_PyCryptoBench",
         help="Path to the file or folder containing source code file(s) to be analyzed. If pointed to a directory, it will automatically batch scan the source files in the directory."
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="sonnet",
+        help=f"Model to analyze with. One of: {', '.join(list_models())}. An unlisted model can be given as 'provider:model_id'."
+    )
     args = parser.parse_args()
-    target_path = args.target
 
-    model_name = 'deepseek-ai/DeepSeek-V3.1-Terminus'
-    # model_name = 'moonshotai/Kimi-K2-Instruct'  # model name from SiliconFlow page: https://cloud.siliconflow.cn/sft-143zof85kk/models
-    API_KEY = os.getenv('API_KEY')
-    if not API_KEY:
-        raise RuntimeError("API_KEY is not set. Please set it in the .env file.")
-    process(target_path, 'py', model_name, API_KEY, 1)
+    model = get_model(args.model)
+    process(args.target, 'py', model, 1)
 
 if __name__ == "__main__":
     main()

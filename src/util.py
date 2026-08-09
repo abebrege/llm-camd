@@ -91,3 +91,9 @@ def parse_analysis_result(text: str, file_path: str) -> dict:
         result['Misused Modules'] = match4.group(1)
 
     return result
+
+def clean_response(content: str) -> str:
+    if '```json' in content:
+        content = content.split('```json')[1].split('```')[0].strip()
+    return content.replace('"', '').replace('{', '').replace('}', '').replace('*', '').replace('#', '')
+
