@@ -22,10 +22,16 @@ def main():
         default="sonnet",
         help=f"Model to analyze with. One of: {', '.join(list_models())}. An unlisted model can be given as 'provider:model_id'."
     )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory where the output CSV should be written. Defaults to ./output/<model>/<target-name>/<datetime>_output.csv."
+    )
     args = parser.parse_args()
 
     model = get_model(args.model)
-    process(args.target, 'py', model, 1)
+    process(args.target, 'py', model, 1, args.output_dir)
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
 from src.model import Model
@@ -74,7 +75,7 @@ def process_single_file(file_path: Path, rule_groups: dict, model: Model) -> dic
         "Time_Taken/s": '0.01'
     }
 
-def process(target_path: str, codetype: str, model: Model, i):
+def process(target_path: str, codetype: str, model: Model, i, output_dir: str | None = None):
     try:
         rule_groups = load_security_rules(codetype)
     except Exception as e:
@@ -88,7 +89,6 @@ def process(target_path: str, codetype: str, model: Model, i):
             code_files = [target]
         else:
             raise ValueError("Target file extension does not match the specified codetype.")
-        output_dir = target.parent
     elif target.is_dir():
         if codetype == 'java':
             java_files = find_java_files(target_path)
@@ -102,9 +102,20 @@ def process(target_path: str, codetype: str, model: Model, i):
             code_files = py_files
         else:
             raise ValueError("Please enter a valid codetype: 'py' or 'java'.")
-        output_dir = target
     else:
         raise ValueError("Target path does not exist.")
+
+    model_name = model.name.replace('/', '_').replace(':', '_')
+    target_name = target.stem if target.is_file() else target.name
+    if output_dir is None:
+        output_path = Path("./output") / model_name / target_name
+    else:
+        output_path = Path(output_dir)
+
+    output_path.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_csv = output_path / f"{timestamp}_output.csv"
+
     results = []
     progress_bar = tqdm(code_files, desc="analyze progress", unit="file")
     for file_path in progress_bar:
@@ -131,6 +142,5 @@ def process(target_path: str, codetype: str, model: Model, i):
             file_results = error_result
         results.append(file_results)
 
-    output_csv = output_dir / f"analysis_result_by_{model.name.replace('/', '_').replace(':', '_')}-CoT-{i}.csv"
     save_to_csv(results, str(output_csv))
     print(f"\n Analysis cycle {i} has been completed! Results save to: {output_csv} \n\n")
