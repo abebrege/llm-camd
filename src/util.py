@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import csv
-import rules as ru
+from src import rules as ru
 import re
 
 def find_java_files(folder_path: str) -> list:
