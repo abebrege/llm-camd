@@ -21,10 +21,10 @@ def main():
 
     model_name = 'deepseek-ai/DeepSeek-V3.1-Terminus'
     # model_name = 'moonshotai/Kimi-K2-Instruct'  # model name from SiliconFlow page: https://cloud.siliconflow.cn/sft-143zof85kk/models
-    API_Key = os.getenv('API_Key')
-    if not API_Key:
-        raise RuntimeError("API_Key is not set. Please set it in the .env file.")
-    process(target_path, 'py', model_name, API_Key, 1)
+    API_KEY = os.getenv('API_KEY')
+    if not API_KEY:
+        raise RuntimeError("API_KEY is not set. Please set it in the .env file.")
+    process(target_path, 'py', model_name, API_KEY, 1)
 
 if __name__ == "__main__":
     main()
