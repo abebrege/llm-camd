@@ -1,0 +1,12 @@
+import ssl
+
+
+class BaseRunner(object):
+
+    def __init__(self, argument):
+        self.argument = argument
+
+
+runner_object = BaseRunner(ssl.PROTOCOL_SSLv2)
+ssl.wrap_socket(ssl_version=runner_object.argument)
+ssl.wrap_socket()
