@@ -199,18 +199,31 @@ def process(target_path: str, codetype: str, model_name: str, API_Key: str, i):
     except Exception as e:
         raise RuntimeError(f"fail load rule_groups: {str(e)}")
 
-    if codetype == 'java':
-        java_files = find_java_files(target_path)
-        if not java_files:
-            raise ValueError("No Found .java files")
-        code_files = java_files
-    elif codetype == 'py':
-        py_files = find_py_files(target_path)
-        if not py_files:
-            raise ValueError("No Found .py files")
-        code_files = py_files
+    target = Path(target_path)
+    if target.is_file():
+        if codetype == 'java' and target.suffix == '.java':
+            code_files = [target]
+        elif codetype == 'py' and target.suffix == '.py':
+            code_files = [target]
+        else:
+            raise ValueError("Target file extension does not match the specified codetype.")
+        output_dir = target.parent
+    elif target.is_dir():
+        if codetype == 'java':
+            java_files = find_java_files(target_path)
+            if not java_files:
+                raise ValueError("No Found .java files")
+            code_files = java_files
+        elif codetype == 'py':
+            py_files = find_py_files(target_path)
+            if not py_files:
+                raise ValueError("No Found .py files")
+            code_files = py_files
+        else:
+            raise ValueError("Please enter a valid codetype: 'py' or 'java'.")
+        output_dir = target
     else:
-        print("Please enter a valid folder path.")
+        raise ValueError("Target path does not exist.")
     results = []
     progress_bar = tqdm(code_files, desc="analyze progress", unit="file")
     for file_path in progress_bar:
@@ -238,6 +251,6 @@ def process(target_path: str, codetype: str, model_name: str, API_Key: str, i):
             file_results = error_result
         results.append(file_results)
 
-    output_csv = Path(target_path) / f"analysis_result_by_{model_name.replace('/', '_')}-CoT-{i}.csv"
+    output_csv = output_dir / f"analysis_result_by_{model_name.replace('/', '_')}-CoT-{i}.csv"
     save_to_csv(results, str(output_csv))
     print(f"\n Analysis cycle {i} has been completed! Results save to: {output_csv} \n\n")
