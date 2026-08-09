@@ -3,7 +3,7 @@ import os
 from src.processor import process
 from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env file
+load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser(

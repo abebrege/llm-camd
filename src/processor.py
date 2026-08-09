@@ -193,19 +193,19 @@ def process_single_file(file_path: Path, rule_groups: dict, model_name: str, API
         "Time_Taken/s": '0.01'
     }
 
-def process(folder_path: str, codetype: str, model_name: str, API_Key: str, i):
+def process(target_path: str, codetype: str, model_name: str, API_Key: str, i):
     try:
         rule_groups = load_security_rules(codetype)
     except Exception as e:
         raise RuntimeError(f"fail load rule_groups: {str(e)}")
 
     if codetype == 'java':
-        java_files = find_java_files(folder_path)
+        java_files = find_java_files(target_path)
         if not java_files:
             raise ValueError("No Found .java files")
         code_files = java_files
     elif codetype == 'py':
-        py_files = find_py_files(folder_path)
+        py_files = find_py_files(target_path)
         if not py_files:
             raise ValueError("No Found .py files")
         code_files = py_files
@@ -238,6 +238,6 @@ def process(folder_path: str, codetype: str, model_name: str, API_Key: str, i):
             file_results = error_result
         results.append(file_results)
 
-    output_csv = Path(folder_path) / f"analysis_result_by_{model_name.replace('/', '_')}-CoT-{i}.csv"
+    output_csv = Path(target_path) / f"analysis_result_by_{model_name.replace('/', '_')}-CoT-{i}.csv"
     save_to_csv(results, str(output_csv))
     print(f"\n Analysis cycle {i} has been completed! Results save to: {output_csv} \n\n")
