@@ -15,4 +15,5 @@ dependencies = [
   "python-dotenv==1.2.2",
   "anthropic>=0.75",
   "openai>=1.109",
+  "matplotlib>=3.11.1",
 ]
