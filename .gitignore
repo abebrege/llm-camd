@@ -94,3 +94,4 @@ __marimo__/
 .streamlit/secrets.toml
 foo
 output/
+benchmark/
