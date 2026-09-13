@@ -3,9 +3,33 @@ from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
 from src.model import Model
-from src.util import find_java_files, find_py_files, load_security_rules, read_code_file, save_to_csv, parse_analysis_result, clean_response
+from src.util import find_java_files, find_py_files, find_js_files, find_go_files, find_general_files, load_security_rules, read_code_file, save_to_csv, parse_analysis_result, clean_response
 
-def prepare_prompt(source_code: str, rule_groups: dict) -> str:
+ROLES = {
+    'py': 'Python programmer',
+    'java': 'Java programmer',
+    'js': 'JavaScript programmer',
+    'go': 'Go programmer',
+    'general': 'software engineer working across multiple programming languages',
+}
+
+LANG_EXTENSIONS = {
+    'py': ('.py',),
+    'java': ('.java',),
+    'js': ('.js',),
+    'go': ('.go',),
+    'general': ('.py', '.java', '.js', '.go'),
+}
+
+LANG_HELPER = {
+    'py': find_py_files,
+    'java': find_java_files,
+    'js': find_js_files,
+    'go': find_go_files,
+    'general': find_general_files,
+}
+
+def prepare_prompt(source_code: str, rule_groups: dict, lang: str = 'py') -> str:
     rule_descriptions = []
     for i, rules in rule_groups.items():
         group_id, group_info = i, rules
@@ -38,7 +62,7 @@ def prepare_prompt(source_code: str, rule_groups: dict) -> str:
         Output the Detection Result of step [5] according to the requirements and format.
 
         ### Task Requirements
-        As a professional Python programmer, strictly execute the [Detection Steps] sequentially to analyze the [Source Code] for Cryptographic API Misuse Detection. 
+        As a professional {ROLES.get(lang, 'software engineer')}, strictly execute the [Detection Steps] sequentially to analyze the [Source Code] for Cryptographic API Misuse Detection.
 
         ### Detection Result Output Requirements:
         1. Strictly executed all [Detection Steps] at first, Output the Detection Result later.
@@ -56,11 +80,11 @@ def prepare_prompt(source_code: str, rule_groups: dict) -> str:
     """
     return instruction
 
-def process_single_file(file_path: Path, rule_groups: dict, model: Model) -> dict:
+def process_single_file(file_path: Path, rule_groups: dict, model: Model, lang: str = 'py') -> dict:
     """process single files and return a dict result"""
     try:
         code_content = read_code_file(str(file_path))
-        prompt = prepare_prompt(code_content, rule_groups)
+        prompt = prepare_prompt(code_content, rule_groups, lang)
         raw_result = clean_response(model.complete(prompt))
         result = parse_analysis_result(raw_result, str(file_path))
         result["Time_Taken/s"] = '0.01'
@@ -75,33 +99,26 @@ def process_single_file(file_path: Path, rule_groups: dict, model: Model) -> dic
         "Time_Taken/s": '0.01'
     }
 
-def process(target_path: str, codetype: str, model: Model, i, output_dir: str | None = None):
+def process(target_path: str, lang: str, model: Model, i, output_dir: str | None = None):
+    if lang not in LANG_EXTENSIONS:
+        raise ValueError(f"Please enter a valid language: one of {sorted(LANG_EXTENSIONS)}.")
+
     try:
-        rule_groups = load_security_rules(codetype)
+        rule_groups = load_security_rules(lang)
     except Exception as e:
         raise RuntimeError(f"fail load rule_groups: {str(e)}")
 
     target = Path(target_path)
+    extensions = LANG_EXTENSIONS[lang]
     if target.is_file():
-        if codetype == 'java' and target.suffix == '.java':
-            code_files = [target]
-        elif codetype == 'py' and target.suffix == '.py':
+        if target.suffix in extensions:
             code_files = [target]
         else:
-            raise ValueError("Target file extension does not match the specified codetype.")
+            raise ValueError("Target file extension does not match the specified language.")
     elif target.is_dir():
-        if codetype == 'java':
-            java_files = find_java_files(target_path)
-            if not java_files:
-                raise ValueError("No Found .java files")
-            code_files = java_files
-        elif codetype == 'py':
-            py_files = find_py_files(target_path)
-            if not py_files:
-                raise ValueError("No Found .py files")
-            code_files = py_files
-        else:
-            raise ValueError("Please enter a valid codetype: 'py' or 'java'.")
+        code_files = LANG_HELPER[lang](target_path)
+        if not code_files:
+            raise ValueError(f"No files found matching extensions {extensions}")
     else:
         raise ValueError("Target path does not exist.")
 
@@ -125,7 +142,8 @@ def process(target_path: str, codetype: str, model: Model, i, output_dir: str | 
             file_results = process_single_file(
                 file_path=file_path,
                 rule_groups=rule_groups,
-                model=model
+                model=model,
+                lang=lang
             )
             elapsed = round(time.time() - start_time, 2)
             file_results["Time_Taken/s"] = f"{elapsed}"

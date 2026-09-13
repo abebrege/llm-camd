@@ -17,6 +17,13 @@ def main():
         help="Path to the file or folder containing source code file(s) to be analyzed. If pointed to a directory, it will automatically batch scan the source files in the directory."
     )
     parser.add_argument(
+        "--lang",
+        type=str,
+        default="py",
+        choices=["py", "java", "js", "go", "general"],
+        help="Language of the source code to analyze, or 'general' for the language-agnostic MASC/CryMisTa-derived rule set applied across all supported languages."
+    )
+    parser.add_argument(
         "--model",
         type=str,
         default="sonnet",
@@ -31,7 +38,7 @@ def main():
     args = parser.parse_args()
 
     model = get_model(args.model)
-    process(args.target, 'py', model, 1, args.output_dir)
+    process(args.target, args.lang, model, 1, args.output_dir)
 
 if __name__ == "__main__":
     main()

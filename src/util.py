@@ -22,6 +22,28 @@ def find_py_files(folder_path: str) -> list:
     return py_files
 
 
+def find_js_files(folder_path: str) -> list:
+    js_files = []
+    for root, _, files in os.walk(folder_path):
+        for file in files:
+            if file.endswith(".js"):
+                js_files.append(Path(root) / file)
+    return js_files
+
+
+def find_go_files(folder_path: str) -> list:
+    go_files = []
+    for root, _, files in os.walk(folder_path):
+        for file in files:
+            if file.endswith(".go"):
+                go_files.append(Path(root) / file)
+    return go_files
+
+
+def find_general_files(folder_path: str) -> list:
+    return find_py_files(folder_path) + find_java_files(folder_path) + find_js_files(folder_path) + find_go_files(folder_path)
+
+
 def load_security_rules(code_type: str = None) -> (dict, dict):
     """Load rule_groups from rule_source.py"""
     try:
@@ -29,6 +51,12 @@ def load_security_rules(code_type: str = None) -> (dict, dict):
             return ru.rule_groups_java
         elif code_type == 'py':
             return ru.rule_groups
+        elif code_type == 'js':
+            return ru.rule_groups_js
+        elif code_type == 'go':
+            return ru.rule_groups_go
+        elif code_type == 'general':
+            return ru.rule_groups_general
     except ImportError:
         raise RuntimeError("Cannot Load rule_groups!")
 
@@ -38,8 +66,8 @@ def read_code_file(file_path: str) -> str:
         path = Path(file_path)
         if not path.is_file():
             raise ValueError("Path is not files")
-        if path.suffix not in ['.py', '.java']:
-            raise ValueError("Only support .py and .java files")
+        if path.suffix not in ['.py', '.java', '.js', '.go']:
+            raise ValueError("Only support .py, .java, .js and .go files")
 
         with open(path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -71,10 +99,10 @@ def parse_analysis_result(text: str, file_path: str) -> dict:
     }
     result["File Path"] = file_path
     patterns = [
-        r'Line Numbers[：:]\s*([^.\n]+?)\s*\n',
-        r'Rule IDs[：:]\s*([\d\s,\|\-]+)\n',
-        r'Rule Names[：:]\s*([^.\n]+?)\s*\n',
-        r'Misused Modules[：:]\s*([^.\n]+?)\s*\n'
+        r'Line Numbers[::]\s*([^.\n]+?)\s*\n',
+        r'Rule IDs[::]\s*([\d\s,\|\-]+)\n',
+        r'Rule Names[::]\s*([^.\n]+?)\s*\n',
+        r'Misused Modules[::]\s*([^.\n]+?)\s*\n'
     ]
 
     match1 = re.search(patterns[0], text)
