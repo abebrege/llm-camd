@@ -1,0 +1,15 @@
+target: ./benchmark/python/Xiong_PyCryptoBench
+model: sonnet
+# default: ./output/<model>/<target-name>/<timestamp>_output.csv
+output_dir: null
+langs:
+  - py
+  - java
+  - js
+  - go
+# independent of langs, so they can be mixed and matched, e.g.:
+#   langs: [py, java, js, go]   rulesets: [general]           -> scan every language,
+#   langs: [py]                 rulesets: [general, py]       -> scan only Python files with general and Python rules
+# Defaults to the same list as `langs`
+# rulesets:
+#   - general

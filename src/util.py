@@ -4,61 +4,40 @@ import csv
 from src import rules as ru
 import re
 
-def find_java_files(folder_path: str) -> list:
-    java_files = []
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".java"):
-                java_files.append(Path(root) / file)
-    return java_files
+def find_files(folder_path: str, extension: str) -> list:
+    files = []
+    for root, _, names in os.walk(folder_path):
+        for name in names:
+            if name.endswith(extension):
+                files.append(Path(root) / name)
+    return files
 
 
-def find_py_files(folder_path: str) -> list:
-    py_files = []
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".py"):
-                py_files.append(Path(root) / file)
-    return py_files
+def ruleset_by_name(name: str) -> dict:
+    if name == 'py':
+        return ru.rule_groups
+    elif name == 'java':
+        return ru.rule_groups_java
+    elif name == 'js':
+        return ru.rule_groups_js
+    elif name == 'go':
+        return ru.rule_groups_go
+    elif name == 'general':
+        return ru.rule_groups_general
+    else:
+        raise ValueError(f"Unknown ruleset '{name}'")
 
 
-def find_js_files(folder_path: str) -> list:
-    js_files = []
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".js"):
-                js_files.append(Path(root) / file)
-    return js_files
-
-
-def find_go_files(folder_path: str) -> list:
-    go_files = []
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".go"):
-                go_files.append(Path(root) / file)
-    return go_files
-
-
-def find_general_files(folder_path: str) -> list:
-    return find_py_files(folder_path) + find_java_files(folder_path) + find_js_files(folder_path) + find_go_files(folder_path)
-
-
-def load_security_rules(code_type: str = None) -> (dict, dict):
-    """Load rule_groups from rule_source.py"""
-    try:
-        if code_type == 'java':
-            return ru.rule_groups_java
-        elif code_type == 'py':
-            return ru.rule_groups
-        elif code_type == 'js':
-            return ru.rule_groups_js
-        elif code_type == 'go':
-            return ru.rule_groups_go
-        elif code_type == 'general':
-            return ru.rule_groups_general
-    except ImportError:
-        raise RuntimeError("Cannot Load rule_groups!")
+def load_security_rules(langs: list[str], rulesets: list[str] | None = None) -> dict:
+    rules = [
+        rule
+        for name in (rulesets or langs)
+        for rule_id, rule in ruleset_by_name(name).items()
+        if rule_id != -1
+    ]
+    merged = {i: rule for i, rule in enumerate(rules, start=1)}
+    merged[-1] = ru.rule_groups[-1]
+    return merged
 
 
 def read_code_file(file_path: str) -> str:

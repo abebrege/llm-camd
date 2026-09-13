@@ -3,14 +3,13 @@ from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
 from src.model import Model
-from src.util import find_java_files, find_py_files, find_js_files, find_go_files, find_general_files, load_security_rules, read_code_file, save_to_csv, parse_analysis_result, clean_response
+from src.util import find_files, load_security_rules, read_code_file, save_to_csv, parse_analysis_result, clean_response
 
 ROLES = {
     'py': 'Python programmer',
     'java': 'Java programmer',
     'js': 'JavaScript programmer',
     'go': 'Go programmer',
-    'general': 'software engineer working across multiple programming languages',
 }
 
 LANG_EXTENSIONS = {
@@ -18,16 +17,11 @@ LANG_EXTENSIONS = {
     'java': ('.java',),
     'js': ('.js',),
     'go': ('.go',),
-    'general': ('.py', '.java', '.js', '.go'),
 }
 
-LANG_HELPER = {
-    'py': find_py_files,
-    'java': find_java_files,
-    'js': find_js_files,
-    'go': find_go_files,
-    'general': find_general_files,
-}
+EXTENSION_TO_LANG = {ext: lang for lang, exts in LANG_EXTENSIONS.items() for ext in exts}
+
+RULESETS = ('py', 'java', 'js', 'go', 'general')
 
 def prepare_prompt(source_code: str, rule_groups: dict, lang: str = 'py') -> str:
     rule_descriptions = []
@@ -99,28 +93,38 @@ def process_single_file(file_path: Path, rule_groups: dict, model: Model, lang: 
         "Time_Taken/s": '0.01'
     }
 
-def process(target_path: str, lang: str, model: Model, i, output_dir: str | None = None):
-    if lang not in LANG_EXTENSIONS:
-        raise ValueError(f"Please enter a valid language: one of {sorted(LANG_EXTENSIONS)}.")
+def collect_code_files(target: Path, langs: list[str]) -> list[Path]:
+    if target.is_file():
+        file_lang = EXTENSION_TO_LANG.get(target.suffix)
+        if file_lang is None or file_lang not in langs:
+            raise ValueError(f"Target file extension '{target.suffix}' does not match any of the configured langs {langs}.")
+        return [target]
+    elif target.is_dir():
+        code_files = []
+        seen = set()
+        for lang in langs:
+            for file_path in find_files(str(target), LANG_EXTENSIONS[lang][0]):
+                if file_path not in seen:
+                    seen.add(file_path)
+                    code_files.append(file_path)
+        if not code_files:
+            raise ValueError(f"No files found matching langs {langs}")
+        return code_files
+    else:
+        raise ValueError("Target path does not exist.")
+
+def process(target_path: str, langs: list[str], rulesets: list[str] | None, model: Model, i, output_dir: str | None = None):
+    invalid_langs = [lang for lang in langs if lang not in LANG_EXTENSIONS]
+    if invalid_langs:
+        raise ValueError(f"Unknown lang(s) {invalid_langs}. Valid langs: {sorted(LANG_EXTENSIONS)}.")
 
     try:
-        rule_groups = load_security_rules(lang)
+        rule_groups = load_security_rules(langs, rulesets)
     except Exception as e:
         raise RuntimeError(f"fail load rule_groups: {str(e)}")
 
     target = Path(target_path)
-    extensions = LANG_EXTENSIONS[lang]
-    if target.is_file():
-        if target.suffix in extensions:
-            code_files = [target]
-        else:
-            raise ValueError("Target file extension does not match the specified language.")
-    elif target.is_dir():
-        code_files = LANG_HELPER[lang](target_path)
-        if not code_files:
-            raise ValueError(f"No files found matching extensions {extensions}")
-    else:
-        raise ValueError("Target path does not exist.")
+    code_files = collect_code_files(target, langs)
 
     model_name = model.name.replace('/', '_').replace(':', '_')
     target_name = target.stem if target.is_file() else target.name
@@ -143,7 +147,7 @@ def process(target_path: str, lang: str, model: Model, i, output_dir: str | None
                 file_path=file_path,
                 rule_groups=rule_groups,
                 model=model,
-                lang=lang
+                lang=EXTENSION_TO_LANG.get(file_path.suffix, 'py')
             )
             elapsed = round(time.time() - start_time, 2)
             file_results["Time_Taken/s"] = f"{elapsed}"
